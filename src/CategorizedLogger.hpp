@@ -25,10 +25,10 @@ inline std::string toString(LoggerName name)
     return "Unknown";
 }
 
-class Logger
+class CategorizedLogger
 {
 public:
-    Logger()
+    CategorizedLogger()
     {
         quill::Backend::start();
 
@@ -49,24 +49,10 @@ public:
 private:
     std::array<quill::Logger*, LoggerName::Count> s_loggers;
 };
-
-static Logger s_logger;
 }  // namespace logger
 
-#define LOG_TRACE_L3(name, message, ...) \
-    QUILL_LOG_TRACE_L3(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_TRACE_L2(name, message, ...) \
-    QUILL_LOG_TRACE_L2(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_TRACE_L1(name, message, ...) \
-    QUILL_LOG_TRACE_L1(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_DEBUG(name, message, ...) \
-    QUILL_LOG_DEBUG(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_INFO(name, message, ...) QUILL_LOG_INFO(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_WARNING(name, message, ...) \
-    QUILL_LOG_WARNING(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_ERROR(name, message, ...) \
-    QUILL_LOG_ERROR(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
-#define LOG_CRITICAL(name, message, ...) \
-    QUILL_LOG_CRITICAL(logger::s_logger.getLogger(logger::LoggerName::name), message, ##__VA_ARGS__)
+#define DEFINE_CAT_LOGGER_MODULE(LoggerName) static logger::CategorizedLogger s_##LoggerName##Logger
+
+#define GET_LOGGER(LoggerName, name) logger::s_##LoggerName##Logger.getLogger(logger::name)
 
 #endif  // LOGGER_CORE_HPP
