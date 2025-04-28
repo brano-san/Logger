@@ -4,7 +4,7 @@ project ("Logger")
 
 file(GLOB_RECURSE HEADER_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.hpp)
 file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.cpp)
-add_executable (Logger ${HEADER_FILES} ${SOURCE_FILES})
+add_library (Logger STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 set(QUILL_DIR "quill")
 set(QUILL_DISABLE_NON_PREFIXED_MACROS ON)
