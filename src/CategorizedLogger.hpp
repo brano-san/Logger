@@ -50,7 +50,7 @@ public:
             sinks.push_back(consoleSink);
 
             m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(), std::move(sinks),
-                quill::PatternFormatterOptions{kPatternFormatterLogs, kPatternFormatterTime});
+                quill::PatternFormatterOptions{kPatternFormatterLogs.data(), kPatternFormatterTime.data()});
 
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Error);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
@@ -63,9 +63,10 @@ public:
     }
 
 private:
-    static constexpr char* kPatternFormatterTime = "%H:%M:%S.%Qns";
-    static constexpr char* kPatternFormatterLogs =
+    static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
+    static constexpr std::string_view kPatternFormatterLogs =
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
+    // TODO: Динамическое определение длины метаданных для уровня названия логгера___^^^^^^^^^^^^
 
     std::array<quill::Logger*, Category::kCount> m_loggers;
 };
