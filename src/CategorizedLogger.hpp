@@ -5,7 +5,9 @@
 #include "quill/Frontend.h"
 #include "quill/LogMacros.h"
 #include "quill/Logger.h"
+
 #include "quill/sinks/ConsoleSink.h"
+#include "quill/sinks/RotatingFileSink.h"
 
 namespace logger {
 
@@ -21,10 +23,35 @@ public:
     {
         quill::Backend::start();
 
+        // File loggers
         for (BaseCategory i = 0; i < Category::kCount; ++i)
         {
-            m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(),
-                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data()));
+            std::vector<std::shared_ptr<quill::Sink>> sinks;
+
+            // auto sink = quill::Frontend::create_or_get_sink<quill::RotatingFileSink>("log.txt",
+            //    []()
+            //    {
+            //        quill::RotatingFileSinkConfig cfg;
+            //        cfg.set_rotation_max_file_size(1024);
+            //        return cfg;
+            //    }());
+
+            auto sink = quill::Frontend::create_or_get_sink<quill::FileSink>("log.txt",
+                []()
+                {
+                    quill::FileSinkConfig cfg;
+                    cfg.set_open_mode('w');
+                    cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, "_%d_%m_%Y_%H_%M_%S");
+                    return cfg;
+                }());
+            sinks.push_back(sink);
+
+            auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data());
+            sinks.push_back(consoleSink);
+
+            m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(), std::move(sinks),
+                quill::PatternFormatterOptions{kPatternFormatterLogs, kPatternFormatterTime});
+
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Error);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
@@ -36,6 +63,10 @@ public:
     }
 
 private:
+    static constexpr char* kPatternFormatterTime = "%H:%M:%S.%Qns";
+    static constexpr char* kPatternFormatterLogs =
+        "[%(time)] [%(thread_id)] [%(short_source_location:<28)] [%(log_level:<11)] [%(logger:<6)] %(message)";
+
     std::array<quill::Logger*, Category::kCount> m_loggers;
 };
 }  // namespace logger
