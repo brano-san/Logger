@@ -65,7 +65,7 @@ public:
 private:
     static constexpr char* kPatternFormatterTime = "%H:%M:%S.%Qns";
     static constexpr char* kPatternFormatterLogs =
-        "[%(time)] [%(thread_id)] [%(short_source_location:<28)] [%(log_level:<11)] [%(logger:<6)] %(message)";
+        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
 
     std::array<quill::Logger*, Category::kCount> m_loggers;
 };
