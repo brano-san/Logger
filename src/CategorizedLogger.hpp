@@ -25,7 +25,7 @@ public:
         {
             m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(),
                 quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data()));
-            m_loggers[i]->init_backtrace(32);
+            m_loggers[i]->init_backtrace(32, quill::LogLevel::Error);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
     }
@@ -40,7 +40,8 @@ private:
 };
 }  // namespace logger
 
-#define DEFINE_CAT_LOGGER_MODULE(LoggerName, CategoryType) static logger::CategorizedLogger<CategoryType> s_##LoggerName##Logger
+#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) extern logger::CategorizedLogger<CategoryType> s_##Name##Logger
+#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) logger::CategorizedLogger<CategoryType> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::k##name)
 
