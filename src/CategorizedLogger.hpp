@@ -36,7 +36,7 @@ public:
             //        return cfg;
             //    }());
 
-            auto sink = quill::Frontend::create_or_get_sink<quill::FileSink>("log.txt",
+            auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>("logs/log.txt",
                 []()
                 {
                     quill::FileSinkConfig cfg;
@@ -44,16 +44,16 @@ public:
                     cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, "_%d_%m_%Y_%H_%M_%S");
                     return cfg;
                 }());
-            sinks.push_back(sink);
+            fileSink->set_log_level_filter(quill::LogLevel::Info);
+            sinks.push_back(fileSink);
 
             auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data());
+            consoleSink->set_log_level_filter(quill::LogLevel::Error);
             sinks.push_back(consoleSink);
 
             m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(), std::move(sinks),
                 quill::PatternFormatterOptions{kPatternFormatterLogs.data(), kPatternFormatterTime.data()});
-
-            m_loggers[i]->init_backtrace(32, quill::LogLevel::Error);
-            m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
+            m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
         }
     }
 
@@ -66,7 +66,6 @@ private:
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
     static constexpr std::string_view kPatternFormatterLogs =
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
-    // TODO: Динамическое определение длины метаданных для уровня названия логгера___^^^^^^^^^^^^
 
     std::array<quill::Logger*, Category::kCount> m_loggers;
 };
