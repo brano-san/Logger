@@ -9,6 +9,10 @@
 #include "quill/sinks/ConsoleSink.h"
 #include "quill/sinks/RotatingFileSink.h"
 
+#include "SimpleIni.hpp"
+
+#include <print>
+
 namespace logger {
 
 template <class T>
@@ -21,6 +25,8 @@ private:
 public:
     CategorizedLogger()
     {
+        loadSettings();
+
         quill::Backend::start();
 
         // File loggers
@@ -63,6 +69,27 @@ public:
     }
 
 private:
+    static void loadSettings()
+    {
+        CSimpleIniA loggerSettingsFile;
+        loggerSettingsFile.LoadFile(kLoggerSettingsFileName.data());
+        for (BaseCategory i = 0; i < Category::kCount; ++i)
+        {
+            for (const auto sink : kLoggerSinks)
+            {
+                std::string_view a = loggerSettingsFile.GetValue(Category::to_string(i).data(), sink.data(), "I");
+                std::println("{} logger category set to \"{}\" level", Category::to_string(i).data(), a);
+
+                loggerSettingsFile.SetValue(Category::to_string(i).data(), sink.data(), a.data());
+            }
+        }
+        loggerSettingsFile.SaveFile(kLoggerSettingsFileName.data());
+    }
+
+    static constexpr std::array kLoggerSinks = {std::string_view{"File"}, std::string_view{"Console"}};
+
+    static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
+
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
     static constexpr std::string_view kPatternFormatterLogs =
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
@@ -76,21 +103,15 @@ private:
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::k##name)
 
-#define CAT_LOG_TRACE_L3(logName, catName, cat, message, ...) \
-    QUILL_LOG_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_TRACE_L2(logName, catName, cat, message, ...) \
-    QUILL_LOG_TRACE_L2(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_TRACE_L1(logName, catName, cat, message, ...) \
-    QUILL_LOG_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_DEBUG(logName, catName, cat, message, ...) \
-    QUILL_LOG_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_INFO(logName, catName, cat, message, ...) \
-    QUILL_LOG_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_WARNING(logName, catName, cat, message, ...) \
-    QUILL_LOG_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_ERROR(logName, catName, cat, message, ...) \
-    QUILL_LOG_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_CRITICAL(logName, catName, cat, message, ...) \
-    QUILL_LOG_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+// clang-format off
+#define CAT_LOG_TRACE_L3(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L2(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L2(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L1(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_DEBUG(logName, catName, cat, message, ...)    QUILL_LOG_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_INFO(logName, catName, cat, message, ...)     QUILL_LOG_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_WARNING(logName, catName, cat, message, ...)  QUILL_LOG_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_ERROR(logName, catName, cat, message, ...)    QUILL_LOG_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_CRITICAL(logName, catName, cat, message, ...) QUILL_LOG_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+// clang-format on
 
 #endif  // LOGGER_CORE_HPP
