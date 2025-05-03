@@ -1,0 +1,4 @@
+﻿#ifndef LOGGER_STACK_TRACE_HPP
+#define LOGGER_STACK_TRACE_HPP
+
+#endif  // LOGGER_CORE_HPP
