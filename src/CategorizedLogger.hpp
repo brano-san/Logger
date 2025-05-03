@@ -44,8 +44,6 @@ public:
 
         for (BaseCategory i = 0; i < Category::kCount; ++i)
         {
-            std::vector<std::shared_ptr<quill::Sink>> sinks;
-
             // File Sink
             quill::FileSinkConfig cfg;
             cfg.set_open_mode('w');
@@ -53,15 +51,14 @@ public:
 
             auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>("logs/log.txt", std::move(cfg));
             fileSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["File"]));
-            sinks.push_back(fileSink);
 
             // Console Sink
             auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data());
             consoleSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["Console"]));
-            sinks.push_back(consoleSink);
 
             // Logger create
-            m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(), std::move(sinks),
+            m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(),
+                {std::move(fileSink), std::move(consoleSink)},
                 quill::PatternFormatterOptions{kPatternFormatterLogs.data(), kPatternFormatterTime.data()});
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
@@ -122,18 +119,53 @@ private:
 };
 }  // namespace logger
 
+// clang-format off
 #define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) extern logger::CategorizedLogger<CategoryType> s_##Name##Logger
 #define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) logger::CategorizedLogger<CategoryType> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::k##name)
 
-#define CAT_LOG_TRACE_L3(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_TRACE_L2(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L2(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_TRACE_L1(logName, catName, cat, message, ...) QUILL_LOG_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_DEBUG(logName, catName, cat, message, ...)    QUILL_LOG_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_INFO(logName, catName, cat, message, ...)     QUILL_LOG_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_WARNING(logName, catName, cat, message, ...)  QUILL_LOG_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_ERROR(logName, catName, cat, message, ...)    QUILL_LOG_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOG_CRITICAL(logName, catName, cat, message, ...) QUILL_LOG_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+// LOG_INFO
+#define CAT_LOG_TRACE_L3(logName, catName, cat, message, ...)  QUILL_LOG_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L2(logName, catName, cat, message, ...)  QUILL_LOG_TRACE_L2(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L1(logName, catName, cat, message, ...)  QUILL_LOG_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_DEBUG(logName, catName, cat, message, ...)     QUILL_LOG_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_INFO(logName, catName, cat, message, ...)      QUILL_LOG_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_WARNING(logName, catName, cat, message, ...)   QUILL_LOG_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_ERROR(logName, catName, cat, message, ...)     QUILL_LOG_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_CRITICAL(logName, catName, cat, message, ...)  QUILL_LOG_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_BACKTRACE(logName, catName, cat, message, ...) QUILL_LOG_BACKTRACE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+
+// LOGV_INFO
+#define CAT_LOGV_TRACE_L3(logName, catName, cat, message, ...)  QUILL_LOGV_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_TRACE_L2(logName, catName, cat, message, ...)  QUILL_LOGV_TRACE_L2(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_TRACE_L1(logName, catName, cat, message, ...)  QUILL_LOGV_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_DEBUG(logName, catName, cat, message, ...)     QUILL_LOGV_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_INFO(logName, catName, cat, message, ...)      QUILL_LOGV_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_WARNING(logName, catName, cat, message, ...)   QUILL_LOGV_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_ERROR(logName, catName, cat, message, ...)     QUILL_LOGV_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_CRITICAL(logName, catName, cat, message, ...)  QUILL_LOGV_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_BACKTRACE(logName, catName, cat, message, ...) QUILL_LOGV_BACKTRACE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+
+// LOG_INFO_LIMIT
+#define CAT_LOG_TRACE_L3_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_TRACE_L3_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L2_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_TRACE_L2_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L1_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_TRACE_L1_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_DEBUG_LIMIT_TIME(logName, catName, cat, time, message, ...)    QUILL_LOG_DEBUG_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_INFO_LIMIT_TIME(logName, catName, cat, time, message, ...)     QUILL_LOG_INFO_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_WARNING_LIMIT_TIME(logName, catName, cat, time, message, ...)  QUILL_LOG_WARNING_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_ERROR_LIMIT_TIME(logName, catName, cat, time, message, ...)    QUILL_LOG_ERROR_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_CRITICAL_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_CRITICAL_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+
+// LOG_INFO_LIMIT_EVERY_N
+#define CAT_LOG_TRACE_L3_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_TRACE_L3_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L2_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_TRACE_L2_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_TRACE_L1_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_TRACE_L1_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_DEBUG_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)    QUILL_LOG_DEBUG_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_INFO_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)     QUILL_LOG_INFO_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_WARNING_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)  QUILL_LOG_WARNING_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_ERROR_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)    QUILL_LOG_ERROR_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_CRITICAL_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_CRITICAL_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+// clang-format on
 
 #endif  // LOGGER_CORE_HPP
