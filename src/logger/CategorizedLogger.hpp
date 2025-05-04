@@ -14,6 +14,10 @@
 
 namespace logger {
 
+static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
+static constexpr std::string_view kPatternFormatterLogs =
+    "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
+
 template <class T>
 class CategorizedLogger
 {
@@ -108,10 +112,6 @@ private:
     }
 
     static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
-
-    static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
-    static constexpr std::string_view kPatternFormatterLogs =
-        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
 
     inline static std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
 
