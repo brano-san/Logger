@@ -2,32 +2,50 @@
 
 #include "quill/Logger.h"
 #include "quill/Frontend.h"
+#include "quill/StringRef.h"
 #include "quill/sinks/ConsoleSink.h"
-
-#include "../logger/CategorizedLogger.hpp"
+#include "quill/DeferredFormatCodec.h"
 
 #include <boost/stacktrace.hpp>
 #include <iostream>
 
 static constexpr std::string_view kStackTraceLoggerName = "StackTrace";
 
-auto s_crashLogger = quill::Frontend::create_or_get_logger(kStackTraceLoggerName.data(),
-    quill::Frontend::create_or_get_sink<quill::ConsoleSink>(kStackTraceLoggerName.data()),
-    quill::PatternFormatterOptions{logger::kPatternFormatterLogs.data(), logger::kPatternFormatterTime.data()});
+quill::Logger* s_crashLogger;
+
+std::string getStackTraceAsFormattedString()
+{
+    auto st = boost::stacktrace::stacktrace().as_vector();
+    std::string log;
+    for (const auto& frame : st)
+    {
+        std::stringstream s;
+        s << frame.address();
+        log += "Address[" + s.str() + "] Location[" + boost::stacktrace::to_string(frame) + "]";
+
+        if (!frame.source_file().empty())
+        {
+            log += " FuncName[" + frame.source_file() + "]";
+        }
+
+        log += '\n';
+    }
+    return log;
+}
 
 #if defined(_WIN32) || defined(_WIN64)
 
 LONG WINAPI unhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
-    QUILL_LOG_CRITICAL(s_crashLogger, "CRASH");
-    std::cerr << boost::stacktrace::stacktrace();
+    QUILL_LOG_CRITICAL(s_crashLogger, "CRASH {}", getStackTraceAsFormattedString());
     return 0;
 }
 
 #endif
 
-void debug::setStackTraceOutputOnCrash()
+void debug::setStackTraceOutputOnCrash(quill::Logger* logger)
 {
+    s_crashLogger = logger;
     boost::stacktrace::this_thread::set_capture_stacktraces_at_throw(true);
 #ifdef __linux__
     // No realization yet
@@ -38,8 +56,7 @@ void debug::setStackTraceOutputOnCrash()
     std::set_terminate(
         []()
         {
-            QUILL_LOG_CRITICAL(s_crashLogger, "CRASH");
-            std::cerr << boost::stacktrace::stacktrace();
+            QUILL_LOG_CRITICAL(s_crashLogger, "Crash {}", getStackTraceAsFormattedString());
             exit(-1);
         });
 #endif

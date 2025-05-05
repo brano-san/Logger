@@ -74,8 +74,17 @@ public:
         return m_loggers[name];
     }
 
+    quill::Logger* getFirstLoggerOrNullptr()
+    {
+        if (m_loggers.empty())
+        {
+            return nullptr;
+        }
+        return m_loggers.front();
+    }
+
 private:
-    static void loadSettings()
+    void loadSettings()
     {
         CSimpleIniA loggerSettingsFile;
         loggerSettingsFile.LoadFile(kLoggerSettingsFileName.data());
@@ -113,9 +122,8 @@ private:
 
     static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
 
-    inline static std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
-
     std::array<quill::Logger*, Category::kCount> m_loggers;
+    std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
 };
 }  // namespace logger
 
