@@ -6,6 +6,9 @@
 
 #include "../logger/CategorizedLogger.hpp"
 
+#include <boost/stacktrace.hpp>
+#include <iostream>
+
 static constexpr std::string_view kStackTraceLoggerName = "StackTrace";
 
 auto s_crashLogger = quill::Frontend::create_or_get_logger(kStackTraceLoggerName.data(),
@@ -17,6 +20,7 @@ auto s_crashLogger = quill::Frontend::create_or_get_logger(kStackTraceLoggerName
 LONG WINAPI unhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 {
     QUILL_LOG_CRITICAL(s_crashLogger, "CRASH");
+    std::cerr << boost::stacktrace::stacktrace();
     return 0;
 }
 
@@ -24,6 +28,7 @@ LONG WINAPI unhandledExceptionFilter(_EXCEPTION_POINTERS* ExceptionInfo)
 
 void debug::setStackTraceOutputOnCrash()
 {
+    boost::stacktrace::this_thread::set_capture_stacktraces_at_throw(true);
 #ifdef __linux__
     // No realization yet
 #else
@@ -34,6 +39,7 @@ void debug::setStackTraceOutputOnCrash()
         []()
         {
             QUILL_LOG_CRITICAL(s_crashLogger, "CRASH");
+            std::cerr << boost::stacktrace::stacktrace();
             exit(-1);
         });
 #endif
