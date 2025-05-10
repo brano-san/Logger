@@ -1,15 +1,8 @@
 ﻿#include "StackTrace.hpp"
 
 #include "quill/Logger.h"
-#include "quill/Frontend.h"
-#include "quill/StringRef.h"
-#include "quill/sinks/ConsoleSink.h"
-#include "quill/DeferredFormatCodec.h"
 
 #include <boost/stacktrace.hpp>
-#include <iostream>
-
-static constexpr std::string_view kStackTraceLoggerName = "StackTrace";
 
 quill::Logger* s_crashLogger;
 
