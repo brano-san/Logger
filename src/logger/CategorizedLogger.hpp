@@ -1,8 +1,6 @@
 ﻿#ifndef LOGGER_CORE_HPP
 #define LOGGER_CORE_HPP
 
-#include <print>
-
 #include <quill/Logger.h>
 #include <quill/Backend.h>
 #include <quill/Frontend.h>
@@ -34,8 +32,8 @@ private:
     struct SinksLogLevel
     {
         std::unordered_map<std::string_view, std::string> logLevels = {
-            {std::string_view{"File"}, std::string{"T3"}},
-            {std::string_view{"Console"}, std::string{"I"}}
+            {std::string_view{"File"},    std::string{"T3"}},
+            {std::string_view{"Console"}, std::string{"I"} }
         };
     };
 
@@ -55,7 +53,11 @@ public:
             fileSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["File"]));
 
             // Console Sink
-            auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data());
+            quill::ConsoleSinkConfig consoleCfg;
+            consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
+
+            auto consoleSink =
+                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data(), std::move(consoleCfg));
             consoleSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["Console"]));
 
             // Logger create
@@ -114,7 +116,6 @@ private:
         auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
         if (it == opt.log_level_short_codes.end())
         {
-            std::println("Cannot find log level by given short name - {}. Return INFO", logLevel);
             return quill::LogLevel::Info;
         }
         return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
