@@ -1,14 +1,17 @@
 ﻿#include "StackTrace.hpp"
 
-#include "quill/Logger.h"
-
 #include <boost/stacktrace.hpp>
+#include <logger/CategorizedLogger.hpp>
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <Windows.h>
+#endif
 
 quill::Logger* s_crashLogger;
 
 void* getDLPointer(const void* address) noexcept
 {
-#ifdef __linux__
+#if defined(__linux__)
     Dl_info dlInfo;
     int result = dladdr(address, &dlInfo);
     if (result != 0)
@@ -16,7 +19,6 @@ void* getDLPointer(const void* address) noexcept
         address = (void*)((char*)address - (char*)dlInfo.dli_fbase);
     }
 #endif
-
     return (void*)address;
 }
 
@@ -81,7 +83,7 @@ void debug::setStackTraceOutputOnCrash(quill::Logger* logger)
     // boost from apt doesn't have backtrace support
     boost::stacktrace::this_thread::set_capture_stacktraces_at_throw(true);
 
-#ifdef __linux__
+#if defined(__linux__)
     setupSignals();
 
     std::set_terminate(
@@ -90,7 +92,7 @@ void debug::setStackTraceOutputOnCrash(quill::Logger* logger)
             QUILL_LOG_CRITICAL(s_crashLogger, "Crash {}", getStackTraceAsFormattedString());
             exit(-1);
         });
-#else
+#elif defined(_WIN32) || defined(_WIN64)
     SetUnhandledExceptionFilter(unhandledExceptionFilter);
     AddVectoredContinueHandler(0, unhandledExceptionFilter);
 

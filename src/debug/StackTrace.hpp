@@ -1,7 +1,7 @@
 ﻿#ifndef LOGGER_STACK_TRACE_HPP
 #define LOGGER_STACK_TRACE_HPP
 
-#include "../logger/CategorizedLogger.hpp"
+#include <quill/Logger.h>
 
 namespace debug {
 void setStackTraceOutputOnCrash(quill::Logger* logger);
