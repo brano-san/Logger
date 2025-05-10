@@ -1,8 +1,6 @@
 ﻿#ifndef LOGGER_CORE_HPP
 #define LOGGER_CORE_HPP
 
-#include <print>
-
 #include <quill/Logger.h>
 #include <quill/Backend.h>
 #include <quill/Frontend.h>
@@ -13,6 +11,10 @@
 #include "SimpleIni.hpp"
 
 namespace logger {
+
+static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
+static constexpr std::string_view kPatternFormatterLogs =
+    "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
 
 template <class T>
 class CategorizedLogger
@@ -30,8 +32,8 @@ private:
     struct SinksLogLevel
     {
         std::unordered_map<std::string_view, std::string> logLevels = {
-            {std::string_view{"File"}, std::string{"T3"}},
-            {std::string_view{"Console"}, std::string{"I"}}
+            {std::string_view{"File"},    std::string{"T3"}},
+            {std::string_view{"Console"}, std::string{"I"} }
         };
     };
 
@@ -39,8 +41,6 @@ public:
     CategorizedLogger()
     {
         loadSettings();
-
-        quill::Backend::start();
 
         for (BaseCategory i = 0; i < Category::kCount; ++i)
         {
@@ -53,7 +53,11 @@ public:
             fileSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["File"]));
 
             // Console Sink
-            auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data());
+            quill::ConsoleSinkConfig consoleCfg;
+            consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
+
+            auto consoleSink =
+                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data(), std::move(consoleCfg));
             consoleSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["Console"]));
 
             // Logger create
@@ -63,6 +67,8 @@ public:
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
+
+        quill::Backend::start();
     }
 
     quill::Logger* getLogger(const BaseCategory name)
@@ -70,8 +76,17 @@ public:
         return m_loggers[name];
     }
 
+    quill::Logger* getFirstLoggerOrNullptr()
+    {
+        if (m_loggers.empty())
+        {
+            return nullptr;
+        }
+        return m_loggers.front();
+    }
+
 private:
-    static void loadSettings()
+    void loadSettings()
     {
         CSimpleIniA loggerSettingsFile;
         loggerSettingsFile.LoadFile(kLoggerSettingsFileName.data());
@@ -101,7 +116,6 @@ private:
         auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
         if (it == opt.log_level_short_codes.end())
         {
-            std::println("Cannot find log level by given short name - {}. Return INFO", logLevel);
             return quill::LogLevel::Info;
         }
         return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
@@ -109,13 +123,8 @@ private:
 
     static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
 
-    static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
-    static constexpr std::string_view kPatternFormatterLogs =
-        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
-
-    inline static std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
-
     std::array<quill::Logger*, Category::kCount> m_loggers;
+    std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
 };
 }  // namespace logger
 
