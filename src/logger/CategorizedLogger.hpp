@@ -45,9 +45,9 @@ public:
             // File Sink
             quill::FileSinkConfig cfg;
             cfg.set_open_mode('w');
-            cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, "_%d_%m_%Y_%H_%M_%S");
+            cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
 
-            auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>("logs/log.txt", std::move(cfg));
+            auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>(kLogSettingsFileName.data(), std::move(cfg));
             fileSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["File"]));
 
             // Console Sink
@@ -121,6 +121,7 @@ private:
 
     static consteval auto getPatternFormatter()
     {
+        // "+ 1" for null-terminated
         std::array<char,
             kPatternFormatterLogsPart1.size() + kDefaultSourceLocationAlignment.size() + kPatternFormatterLogsPart2.size() + 1>
             res{};
@@ -137,7 +138,10 @@ private:
 
     static constexpr std::string_view kDefaultSourceLocationAlignment = "28";
 
-    static constexpr std::string_view kPatternFormatterTime      = "%H:%M:%S.%Qns";
+    static constexpr std::string_view kPatternLogFileName   = "_%d_%m_%Y_%H_%M_%S";
+    static constexpr std::string_view kLogSettingsFileName  = "logs/log.txt";
+    static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
+
     static constexpr std::string_view kPatternFormatterLogsPart1 = "[%(time)] [%(thread_id)] [%(short_source_location:^";
     static constexpr std::string_view kPatternFormatterLogsPart2 = ")] [%(log_level:^11)] [%(logger:^6)] %(message)";
 
