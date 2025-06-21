@@ -10,6 +10,8 @@
 
 #include "SimpleIni.hpp"
 
+#include <iostream>
+
 namespace logger {
 
 template <class T>
@@ -46,7 +48,7 @@ public:
             cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, "_%d_%m_%Y_%H_%M_%S");
 
             auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>("logs/log.txt", std::move(cfg));
-            fileSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["File"]));
+            fileSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["File"]));
 
             // Console Sink
             quill::ConsoleSinkConfig consoleCfg;
@@ -54,12 +56,12 @@ public:
 
             auto consoleSink =
                 quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data(), std::move(consoleCfg));
-            consoleSink->set_log_level_filter(getLogLevelByShortName(s_loggerSinks[i].logLevels["Console"]));
+            consoleSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["Console"]));
 
             // Logger create
             m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(),
                 {std::move(fileSink), std::move(consoleSink)},
-                quill::PatternFormatterOptions{kPatternFormatterLogs.data(), kPatternFormatterTime.data()});
+                quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
@@ -82,6 +84,17 @@ public:
     }
 
 private:
+    static quill::LogLevel getLogLevelByShortName(std::string_view logLevel)
+    {
+        quill::BackendOptions opt;
+        auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
+        if (it == opt.log_level_short_codes.end())
+        {
+            return quill::LogLevel::Info;
+        }
+        return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
+    }
+
     void loadSettings()
     {
         CSimpleIniA loggerSettingsFile;
@@ -96,7 +109,7 @@ private:
 
         for (BaseCategory i = 0; i < Category::kCount; ++i)
         {
-            for (auto& sink : s_loggerSinks[i].logLevels)
+            for (auto& sink : m_loggerSinks[i].logLevels)
             {
                 sink.second = loggerSettingsFile.GetValue(Category::to_string(i).data(), sink.first.data(), sink.second.data());
                 loggerSettingsFile.SetValue(Category::to_string(i).data(), sink.first.data(), sink.second.data());
@@ -106,25 +119,30 @@ private:
         loggerSettingsFile.SaveFile(kLoggerSettingsFileName.data());
     }
 
-    static quill::LogLevel getLogLevelByShortName(std::string_view logLevel)
+    static consteval auto getPatternFormatter()
     {
-        quill::BackendOptions opt;
-        auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
-        if (it == opt.log_level_short_codes.end())
-        {
-            return quill::LogLevel::Info;
-        }
-        return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
+        std::array<char,
+            kPatternFormatterLogsPart1.size() + kDefaultSourceLocationAlignment.size() + kPatternFormatterLogsPart2.size() + 1>
+            res{};
+
+        auto* ptr = res.data();
+        ptr       = std::copy(kPatternFormatterLogsPart1.begin(), kPatternFormatterLogsPart1.end(), ptr);
+        ptr       = std::copy(kDefaultSourceLocationAlignment.begin(), kDefaultSourceLocationAlignment.end(), ptr);
+        ptr       = std::copy(kPatternFormatterLogsPart2.begin(), kPatternFormatterLogsPart2.end(), ptr);
+
+        return res;
     }
 
     static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
 
-    static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
-    static constexpr std::string_view kPatternFormatterLogs =
-        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^6)] %(message)";
+    static constexpr std::string_view kDefaultSourceLocationAlignment = "28";
+
+    static constexpr std::string_view kPatternFormatterTime      = "%H:%M:%S.%Qns";
+    static constexpr std::string_view kPatternFormatterLogsPart1 = "[%(time)] [%(thread_id)] [%(short_source_location:^";
+    static constexpr std::string_view kPatternFormatterLogsPart2 = ")] [%(log_level:^11)] [%(logger:^6)] %(message)";
 
     std::array<quill::Logger*, Category::kCount> m_loggers;
-    std::array<SinksLogLevel, Category::kCount> s_loggerSinks;
+    std::array<SinksLogLevel, Category::kCount> m_loggerSinks;
 };
 }  // namespace logger
 
