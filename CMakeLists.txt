@@ -16,6 +16,10 @@ endif()
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src")
 
+if(MSVC)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+endif()
+
 set(QUILL_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/quill")
 set(QUILL_DISABLE_NON_PREFIXED_MACROS ON)
 message(STATUS "Setting quill: " ${QUILL_DIR} "; To target: " ${PROJECT_NAME})
