@@ -119,16 +119,46 @@ private:
         loggerSettingsFile.SaveFile(kLoggerSettingsFileName.data());
     }
 
+    template <size_t number>
+    static consteval auto getNumberAsCharArray()
+    {
+        constexpr auto count_digits = [](size_t x) constexpr
+        {
+            int len = (x <= 0) ? 1 : 0;
+            while (x)
+            {
+                x /= 10;
+                ++len;
+            }
+            return len;
+        };
+
+        constexpr int len = count_digits(number);
+        std::array<char, len> result{};
+
+        auto num = number;
+        for (int i = len - 1; i >= 0; --i)
+        {
+            result[i]  = '0' + (num % 10);
+            num       /= 10;
+        }
+
+        return result;
+    }
+
     static consteval auto getPatternFormatter()
     {
+        // "+ 2" for whitespaces in begin and end
+        constexpr auto size = Category::maxSourceStringLength() + 2;
+
         // "+ 1" for null-terminated
-        std::array<char,
-            kPatternFormatterLogsPart1.size() + kDefaultSourceLocationAlignment.size() + kPatternFormatterLogsPart2.size() + 1>
-            res{};
+        std::array<char, kPatternFormatterLogsPart1.size() + size + kPatternFormatterLogsPart2.size() + 1> res{};
+
+        constexpr auto loggerNameLength = getNumberAsCharArray<size>();
 
         auto* ptr = res.data();
         ptr       = std::copy(kPatternFormatterLogsPart1.begin(), kPatternFormatterLogsPart1.end(), ptr);
-        ptr       = std::copy(kDefaultSourceLocationAlignment.begin(), kDefaultSourceLocationAlignment.end(), ptr);
+        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
         ptr       = std::copy(kPatternFormatterLogsPart2.begin(), kPatternFormatterLogsPart2.end(), ptr);
 
         return res;
@@ -142,8 +172,9 @@ private:
     static constexpr std::string_view kLogSettingsFileName  = "logs/log.txt";
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
 
-    static constexpr std::string_view kPatternFormatterLogsPart1 = "[%(time)] [%(thread_id)] [%(short_source_location:^";
-    static constexpr std::string_view kPatternFormatterLogsPart2 = ")] [%(log_level:^11)] [%(logger:^6)] %(message)";
+    static constexpr std::string_view kPatternFormatterLogsPart1 =
+        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^";
+    static constexpr std::string_view kPatternFormatterLogsPart2 = ")] %(message)";
 
     std::array<quill::Logger*, Category::kCount> m_loggers;
     std::array<SinksLogLevel, Category::kCount> m_loggerSinks;
