@@ -19,6 +19,7 @@ class CategorizedLogger
 {
 private:
     using Category     = T;
+    static_assert(Category::kCount > 0);
     using BaseCategory = typename Category::baseType;
 
     struct SinkLogLevel
@@ -165,8 +166,6 @@ private:
     }
 
     static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
-
-    static constexpr std::string_view kDefaultSourceLocationAlignment = "28";
 
     static constexpr std::string_view kPatternLogFileName   = "_%d_%m_%Y_%H_%M_%S";
     static constexpr std::string_view kLogSettingsFileName  = "logs/log.txt";
