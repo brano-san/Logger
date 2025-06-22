@@ -23,6 +23,10 @@ add_subdirectory(${QUILL_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC quill::quill)
 target_include_directories(${PROJECT_NAME} PUBLIC "${QUILL_DIR}/include")
 
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/third_party/GenEnum")
+target_link_libraries(${PROJECT_NAME} PUBLIC GenEnum)
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/third_party")
+
 if (ENABLE_DEBUG)
     if(WIN32)
         find_package(Boost REQUIRED COMPONENTS stacktrace_windbg)

@@ -1,3 +1,6 @@
 [submodule "third_party/quill"]
 	path = third_party/quill
 	url = https://github.com/odygrd/quill
+[submodule "third_party/GenEnum"]
+	path = third_party/GenEnum
+	url = https://github.com/brano-san/GenEnum
