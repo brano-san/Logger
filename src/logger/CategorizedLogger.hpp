@@ -10,8 +10,6 @@
 
 #include "SimpleIni.hpp"
 
-#include <iostream>
-
 namespace logger {
 
 template <class T>
@@ -77,11 +75,7 @@ public:
 
     quill::Logger* getFirstLoggerOrNullptr()
     {
-        if (m_loggers.empty())
-        {
-            return nullptr;
-        }
-        return m_loggers.front();
+        return m_loggers.empty() ? nullptr : m_loggers.front();
     }
 
 private:
