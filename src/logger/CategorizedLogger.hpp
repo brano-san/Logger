@@ -17,7 +17,7 @@ class CategorizedLogger
 {
 private:
     using Category     = T;
-    static_assert(Category::kCount > 0);
+    static_assert(Category::Count > 0);
     using BaseCategory = typename Category::baseType;
 
     struct SinkLogLevel
@@ -39,7 +39,7 @@ public:
     {
         loadSettings();
 
-        for (BaseCategory i = 0; i < Category::kCount; ++i)
+        for (BaseCategory i = 0; i < Category::Count; ++i)
         {
             // File Sink
             quill::FileSinkConfig cfg;
@@ -102,7 +102,7 @@ private:
             loggerSettingsFile.SetValue("Description", opt.log_level_descriptions[i].data(), opt.log_level_short_codes[i].data());
         }
 
-        for (BaseCategory i = 0; i < Category::kCount; ++i)
+        for (BaseCategory i = 0; i < Category::Count; ++i)
         {
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
@@ -169,8 +169,8 @@ private:
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^";
     static constexpr std::string_view kPatternFormatterLogsPart2 = ")] %(message)";
 
-    std::array<quill::Logger*, Category::kCount> m_loggers;
-    std::array<SinksLogLevel, Category::kCount> m_loggerSinks;
+    std::array<quill::Logger*, Category::Count> m_loggers;
+    std::array<SinksLogLevel, Category::Count> m_loggerSinks;
 };
 }  // namespace logger
 
@@ -178,7 +178,7 @@ private:
 #define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) extern logger::CategorizedLogger<CategoryType> s_##Name##Logger
 #define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) logger::CategorizedLogger<CategoryType> s_##Name##Logger
 
-#define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::k##name)
+#define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::name)
 
 // LOG_INFO
 #define CAT_LOG_TRACE_L3(logName, catName, cat, message, ...)  QUILL_LOG_TRACE_L3(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
