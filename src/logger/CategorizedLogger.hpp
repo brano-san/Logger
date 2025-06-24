@@ -17,7 +17,7 @@ class CategorizedLogger
 {
 private:
     using Category     = T;
-    static_assert(Category::Count > 0);
+    static_assert(Category::getSize() > 0);
     using BaseCategory = typename Category::baseType;
 
     struct SinkLogLevel
@@ -39,7 +39,7 @@ public:
     {
         loadSettings();
 
-        for (BaseCategory i = 0; i < Category::Count; ++i)
+        for (BaseCategory i = 0; i < Category::getSize(); ++i)
         {
             // File Sink
             quill::FileSinkConfig cfg;
@@ -102,7 +102,7 @@ private:
             loggerSettingsFile.SetValue("Description", opt.log_level_descriptions[i].data(), opt.log_level_short_codes[i].data());
         }
 
-        for (BaseCategory i = 0; i < Category::Count; ++i)
+        for (BaseCategory i = 0; i < Category::getSize(); ++i)
         {
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
@@ -169,8 +169,8 @@ private:
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^";
     static constexpr std::string_view kPatternFormatterLogsPart2 = ")] %(message)";
 
-    std::array<quill::Logger*, Category::Count> m_loggers;
-    std::array<SinksLogLevel, Category::Count> m_loggerSinks;
+    std::array<quill::Logger*, Category::getSize()> m_loggers;
+    std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
 };
 }  // namespace logger
 
