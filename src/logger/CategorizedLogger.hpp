@@ -54,13 +54,13 @@ public:
             consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
 
             auto consoleSink =
-                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::to_string(i).data(), std::move(consoleCfg));
+                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::toString(i).data(), std::move(consoleCfg));
             consoleSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["Console"]));
 
             // Logger create
-            m_loggers[i] = quill::Frontend::create_or_get_logger(Category::to_string(i).data(),
-                {std::move(fileSink), std::move(consoleSink)},
-                quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
+            m_loggers[i] =
+                quill::Frontend::create_or_get_logger(Category::toString(i).data(), {std::move(fileSink), std::move(consoleSink)},
+                    quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
             m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
@@ -106,8 +106,8 @@ private:
         {
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
-                sink.second = loggerSettingsFile.GetValue(Category::to_string(i).data(), sink.first.data(), sink.second.data());
-                loggerSettingsFile.SetValue(Category::to_string(i).data(), sink.first.data(), sink.second.data());
+                sink.second = loggerSettingsFile.GetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
+                loggerSettingsFile.SetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
             }
         }
 
