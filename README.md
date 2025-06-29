@@ -48,10 +48,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Logger)
 ### Logging Defines
 Log names same as in [Quill](https://github.com/odygrd/quill) library, but with other interface:
 ```C++
-LOG_INFO(<Category>, "<Message>", <Args>)
-LOGV_INFO(<Category>, "<Message>", <Args>)
-LOG_INFO_LIMIT_TIME(<Category>, <Time>, "<Message>", <Args>)
-LOG_INFO_LIMIT_EVERY_N(<Category>, <Count>, "<Message>", <Args>)
+LOG_INFO(<Category>, "<Message>", <Args>);
+LOGV_INFO(<Category>, "<Message>", <Args>);
+LOG_INFO_LIMIT_TIME(<Category>, <Time>, "<Message>", <Args>);
+LOG_INFO_LIMIT_EVERY_N(<Category>, <Count>, "<Message>", <Args>);
 ```
 
 ### Features
