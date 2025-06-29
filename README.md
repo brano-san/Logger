@@ -37,7 +37,7 @@ CMake connection:
 2. Add subdirectory with cloned ```Logger``` project
 3. Optionally set ```ENABLE_DEBUG``` variable (see [Usage](#usage))
 4. Link Your target with target ```Logger```
-```C++
+```cmake
 set(ENABLE_DEBUG ON)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/third_party/Logger")
 target_link_libraries(${PROJECT_NAME} PRIVATE Logger)
@@ -126,7 +126,6 @@ Then On Crash Stacktrace will be handled and printed to Console and written to F
 [20:27:53.518325478] [20760] [     StackTrace.cpp:49      ] [ CRITICAL  ] [     Core      ] Address[00007FF6ED84AED3] Location[0x000000000009AED3 in C:\LoggerLauncher\build\bin\LoggerLauncher\LoggerLauncher.exe]
 [20:27:53.518325478] [20760] [     StackTrace.cpp:49      ] [ CRITICAL  ] [     Core      ] Address[00007FF6ED84B4BD] Location[0x000000000009B4BD in C:\LoggerLauncher\build\bin\LoggerLauncher\LoggerLauncher.exe]
 ```
-
 
 ## License
 
