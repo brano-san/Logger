@@ -54,9 +54,9 @@ LOG_INFO_LIMIT_TIME(<Category>, <Time>, "<Message>", <Args>);
 LOG_INFO_LIMIT_EVERY_N(<Category>, <Count>, "<Message>", <Args>);
 ```
 
-### Features
+## Features
 
-#### Logging to Console and File
+### Logging to Console and File
 All of logging defines write messages to file and console at the same time. Example:
 ```C++
 LOG_INFO(Core, "My First Log");
@@ -65,7 +65,7 @@ LOG_INFO(Core, "My First Log");
 ```
 File logs saves in folder `logs` with name `log_<Application Start Time>.txt`, e.g. `log_29_06_2025_19_49_42.txt`
 
-#### Categories
+### Categories
 Define logger categories:
 ```C++
 GENENUM(uint8_t, CoreLauncherSource, Core, OtherCategory); // CoreLauncherSource - enum of logger categories
@@ -81,7 +81,7 @@ LOG_INFO(OtherCategory, "OtherCategory Log");
 ```
 
 
-#### Logging Settings
+### Logging Settings
 To configure logging levels for different outputs by `LogSettings.ini` file:
 ```ini
 [Description]
@@ -109,7 +109,7 @@ File = T3
 `Console = I` - Configure console output. In `Description` category includes all of possible logging levels
 `File = T3` - Configure log level of file output
 
-#### Boost StackTrace Output On Application Crash
+### Boost StackTrace Output On Application Crash
 Enable feature by set cmake variable `ENABLE_DEBUG`:
 ```cmake
 set(ENABLE_DEBUG ON)
