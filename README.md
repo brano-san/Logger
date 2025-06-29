@@ -54,10 +54,15 @@ LOG_INFO_LIMIT_TIME(<Category>, <Time>, "<Message>", <Args>);
 LOG_INFO_LIMIT_EVERY_N(<Category>, <Count>, "<Message>", <Args>);
 ```
 
+Console view:
 <div align="center">
   <div align="center"><img src="docs/logs_preview.png" alt="Logs Preview" width="95%" /></div>
 </div>
 
+File View:
+<div align="center">
+  <div align="center"><img src="docs/file_preview.png" alt="File Preview" width="95%" /></div>
+</div>
 
 ## Features
 
