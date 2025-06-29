@@ -54,6 +54,11 @@ LOG_INFO_LIMIT_TIME(<Category>, <Time>, "<Message>", <Args>);
 LOG_INFO_LIMIT_EVERY_N(<Category>, <Count>, "<Message>", <Args>);
 ```
 
+<div align="center">
+  <div align="center"><img src="docs/logs_preview.png" alt="Logs Preview" width="95%" /></div>
+</div>
+
+
 ## Features
 
 ### Logging to Console and File
