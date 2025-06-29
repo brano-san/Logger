@@ -106,7 +106,9 @@ Console = I
 File = T3
 ```
 `[Core]` - Category name to configure
+
 `Console = I` - Configure console output. In `Description` category includes all of possible logging levels
+
 `File = T3` - Configure log level of file output
 
 ### Boost StackTrace Output On Application Crash
