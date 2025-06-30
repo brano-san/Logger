@@ -14,7 +14,16 @@ if (ENABLE_DEBUG)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
+add_library(Logger::Logger ALIAS ${PROJECT_NAME})
+
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src")
+
+if(MSVC)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX)
+endif()
+
+include(cmake/FindBoostStacktrace.cmake)
+FindAndLinkBoost()
 
 set(QUILL_DIR "${CMAKE_CURRENT_LIST_DIR}/third_party/quill")
 set(QUILL_DISABLE_NON_PREFIXED_MACROS ON)
@@ -22,20 +31,6 @@ message(STATUS "Setting quill: " ${QUILL_DIR} "; To target: " ${PROJECT_NAME})
 add_subdirectory(${QUILL_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC quill::quill)
 target_include_directories(${PROJECT_NAME} PUBLIC "${QUILL_DIR}/include")
-
-if (ENABLE_DEBUG)
-    if(WIN32)
-        set(BOOST_ROOT "C:/boost_1_88_0/stage-msvc17/lib/cmake")
-        find_package(Boost REQUIRED COMPONENTS stacktrace_windbg)
-        target_link_libraries(${PROJECT_NAME} PRIVATE Boost::stacktrace_windbg)
-    elseif(UNIX)
-        cmake_policy(SET CMP0167 OLD)
-        find_package(Boost REQUIRED COMPONENTS stacktrace_backtrace)
-        target_link_libraries(${PROJECT_NAME} PRIVATE Boost::stacktrace_backtrace)
-
-        target_compile_definitions(${PROJECT_NAME} PRIVATE BOOST_STACKTRACE_USE_BACKTRACE)
-    endif()
-endif()
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/third_party/GenEnum")
 target_link_libraries(${PROJECT_NAME} PUBLIC GenEnum)
