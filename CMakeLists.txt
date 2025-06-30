@@ -14,6 +14,8 @@ if (ENABLE_DEBUG)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
+add_library(Logger::Logger ALIAS ${PROJECT_NAME})
+
 target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_LIST_DIR}/src")
 
 if(MSVC)
