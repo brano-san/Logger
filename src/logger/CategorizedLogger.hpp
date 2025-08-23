@@ -16,7 +16,7 @@ template <class T>
 class CategorizedLogger
 {
 private:
-    using Category     = T;
+    using Category = T;
     static_assert(Category::getSize() > 0);
     using BaseCategory = typename Category::baseType;
 
@@ -82,7 +82,7 @@ private:
     static quill::LogLevel getLogLevelByShortName(std::string_view logLevel)
     {
         quill::BackendOptions opt;
-        auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
+        auto* it = std::ranges::find(opt.log_level_short_codes, logLevel);
         if (it == opt.log_level_short_codes.end())
         {
             return quill::LogLevel::Info;
@@ -117,7 +117,7 @@ private:
     template <size_t number>
     static consteval auto getNumberAsCharArray()
     {
-        constexpr auto count_digits = [](size_t x) constexpr
+        constexpr auto countDigits = [](size_t x) constexpr
         {
             int len = (x <= 0) ? 1 : 0;
             while (x)
@@ -128,7 +128,7 @@ private:
             return len;
         };
 
-        constexpr int len = count_digits(number);
+        constexpr int len = countDigits(number);
         std::array<char, len> result{};
 
         auto num = number;
@@ -147,14 +147,18 @@ private:
         constexpr auto size = Category::maxSourceStringLength() + 2;
 
         // "+ 1" for null-terminated
-        std::array<char, kPatternFormatterLogsPart1.size() + size + kPatternFormatterLogsPart2.size() + 1> res{};
+        std::array<char, kPatternFormatterLogsPart1.size() + kLoggerName.size() + kPatternFormatterLogsPart2.size() + size +
+                             kPatternFormatterLogsPart3.size() + 1>
+            res{};
 
         constexpr auto loggerNameLength = getNumberAsCharArray<size>();
 
         auto* ptr = res.data();
         ptr       = std::copy(kPatternFormatterLogsPart1.begin(), kPatternFormatterLogsPart1.end(), ptr);
-        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
+        ptr       = std::copy(kLoggerName.begin(), kLoggerName.end(), ptr);
         ptr       = std::copy(kPatternFormatterLogsPart2.begin(), kPatternFormatterLogsPart2.end(), ptr);
+        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
+        ptr       = std::copy(kPatternFormatterLogsPart3.begin(), kPatternFormatterLogsPart3.end(), ptr);
 
         return res;
     }
@@ -166,8 +170,11 @@ private:
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
 
     static constexpr std::string_view kPatternFormatterLogsPart1 =
-        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^";
-    static constexpr std::string_view kPatternFormatterLogsPart2 = ")] %(message)";
+        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ ";
+    static constexpr std::string_view kPatternFormatterLogsPart2 = " ] [%(logger:^";
+    static constexpr std::string_view kPatternFormatterLogsPart3 = ")] %(message)";
+
+    static constexpr std::string_view kLoggerName = Category::getEnumName();
 
     std::array<quill::Logger*, Category::getSize()> m_loggers;
     std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
