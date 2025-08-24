@@ -12,7 +12,7 @@
 
 namespace logger {
 
-template <class T>
+template <class T, const char* LoggerName>
 class CategorizedLogger
 {
 private:
@@ -174,7 +174,7 @@ private:
     static constexpr std::string_view kPatternFormatterLogsPart2 = " ] [%(logger:^";
     static constexpr std::string_view kPatternFormatterLogsPart3 = ")] %(message)";
 
-    static constexpr std::string_view kLoggerName = Category::getEnumName();
+    static constexpr std::string_view kLoggerName = LoggerName;
 
     std::array<quill::Logger*, Category::getSize()> m_loggers;
     std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
@@ -182,8 +182,13 @@ private:
 }  // namespace logger
 
 // clang-format off
-#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) extern logger::CategorizedLogger<CategoryType> s_##Name##Logger
-#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) logger::CategorizedLogger<CategoryType> s_##Name##Logger
+#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) \
+    extern const char s_##Name##LoggerName[]; \
+    extern logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
+
+#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) \
+    inline constexpr char s_##Name##LoggerName[] = #Name; \
+    logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::name)
 
