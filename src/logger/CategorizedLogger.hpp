@@ -1,5 +1,4 @@
-﻿#ifndef LOGGER_CORE_HPP
-#define LOGGER_CORE_HPP
+﻿#pragma once
 
 #include <quill/Logger.h>
 #include <quill/Backend.h>
@@ -182,12 +181,12 @@ private:
 }  // namespace logger
 
 // clang-format off
-#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) \
-    extern const char s_##Name##LoggerName[]; \
+#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType)                                      \
+    extern const char s_##Name##LoggerName[];                                             \
     extern logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
 
-#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) \
-    inline constexpr char s_##Name##LoggerName[] = #Name; \
+#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType)                \
+    inline constexpr char s_##Name##LoggerName[] = #Name;                          \
     logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::name)
@@ -234,5 +233,3 @@ private:
 #define CAT_LOG_ERROR_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)    QUILL_LOG_ERROR_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_CRITICAL_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_CRITICAL_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 // clang-format on
-
-#endif  // LOGGER_CORE_HPP
