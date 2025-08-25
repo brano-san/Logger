@@ -7,6 +7,8 @@
 #include <quill/sinks/FileSink.h>
 #include <quill/sinks/ConsoleSink.h>
 
+#include <GenEnum.hpp>
+
 #include "SimpleIni.hpp"
 
 namespace logger {
