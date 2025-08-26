@@ -21,17 +21,14 @@ private:
     static_assert(Category::getSize() > 0);
     using BaseCategory = typename Category::baseType;
 
-    struct SinkLogLevel
-    {
-        std::string_view sink;
-        std::string logLevel;
-    };
-
     struct SinksLogLevel
     {
-        std::unordered_map<std::string_view, std::string> logLevels = {
-            {std::string_view{"File"},    std::string{"T3"}},
-            {std::string_view{"Console"}, std::string{"I"} }
+        GENENUM(uint8_t, LogSource, File, Console);
+        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
+
+        std::map<LogSource, LogLevel> logLevels = {
+            {LogSources::File,    LogLevels::T3},
+            {LogSources::Console, LogLevels::I }
         };
     };
 
@@ -47,16 +44,20 @@ public:
             cfg.set_open_mode('w');
             cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
 
+            const auto fileLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::File];
+
             auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>(kLogSettingsFileName.data(), std::move(cfg));
-            fileSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["File"]));
+            fileSink->set_log_level_filter(getLogLevelByShortName(SinksLogLevel::LogLevels::toString(fileLogLevel)));
 
             // Console Sink
             quill::ConsoleSinkConfig consoleCfg;
             consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
 
+            const auto consoleLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::Console];
+
             auto consoleSink =
                 quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::toString(i).data(), std::move(consoleCfg));
-            consoleSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["Console"]));
+            consoleSink->set_log_level_filter(getLogLevelByShortName(SinksLogLevel::LogLevels::toString(consoleLogLevel)));
 
             // Logger create
             m_loggers[i] =
@@ -107,8 +108,17 @@ private:
         {
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
-                sink.second = loggerSettingsFile.GetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
-                loggerSettingsFile.SetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
+                const auto logSource = SinksLogLevel::LogSources::toString(sink.first);
+                const auto logLevel  = SinksLogLevel::LogLevels::toString(sink.second);
+
+                const bool result = SinksLogLevel::LogLevels::fromString(
+                    loggerSettingsFile.GetValue(Category::toString(i).data(), logSource.data(), logLevel.data()), sink.second);
+                if (!result)
+                {
+                    sink.second = SinksLogLevel::LogLevels::I;
+                }
+
+                loggerSettingsFile.SetValue(Category::toString(i).data(), logSource.data(), logLevel.data());
             }
         }
 
