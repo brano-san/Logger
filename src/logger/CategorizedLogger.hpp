@@ -13,6 +13,8 @@
 
 namespace logger {
 
+// GENENUM(uint8_t, CoreLauncherSource, Core, Test);
+
 template <class T, const char* LoggerName>
 class CategorizedLogger
 {
@@ -24,18 +26,17 @@ private:
     struct SinksLogLevel
     {
         GENENUM(uint8_t, LogSource, File, Console);
+        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
 
-        struct LogLevel
+        struct CurrentAndDefualtLogLevel
         {
-            GENENUM(uint8_t, ShortLogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
-            ShortLogLevel currentLogLevel;
-            const ShortLogLevel kDefaultLogLevel;
-        }
+            LogLevel currentLogLevel;
+            LogLevel defaultLogLevel;
+        };
 
-        std::map<LogSource, LogLevel>
-            logLevels = {
-                {LogSources::File,    LogLevels::T3},
-                {LogSources::Console, LogLevels::I }
+        std::map<LogSource, CurrentAndDefualtLogLevel> logLevels = {
+            {LogSources::File,    CurrentAndDefualtLogLevel{LogLevels::T3, LogLevels::T3}},
+            {LogSources::Console, CurrentAndDefualtLogLevel{LogLevels::I, LogLevels::I}  }
         };
     };
 
@@ -54,7 +55,8 @@ public:
             const auto fileLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::File];
 
             auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>(kLogSettingsFileName.data(), std::move(cfg));
-            fileSink->set_log_level_filter(getLogLevelByShortName(SinksLogLevel::LogLevels::toString(fileLogLevel)));
+            fileSink->set_log_level_filter(
+                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(fileLogLevel.currentLogLevel)));
 
             // Console Sink
             quill::ConsoleSinkConfig consoleCfg;
@@ -64,7 +66,8 @@ public:
 
             auto consoleSink =
                 quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::toString(i).data(), std::move(consoleCfg));
-            consoleSink->set_log_level_filter(getLogLevelByShortName(SinksLogLevel::LogLevels::toString(consoleLogLevel)));
+            consoleSink->set_log_level_filter(
+                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(consoleLogLevel.currentLogLevel)));
 
             // Logger create
             m_loggers[i] =
@@ -116,16 +119,19 @@ private:
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
                 const auto logSource = SinksLogLevel::LogSources::toString(sink.first);
-                const auto logLevel  = SinksLogLevel::LogLevels::toString(sink.second);
+                const auto logLevel  = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
 
-                const bool result = SinksLogLevel::LogLevels::fromString(
-                    loggerSettingsFile.GetValue(Category::toString(i).data(), logSource.data(), logLevel.data()), sink.second);
+                const auto levelFromSettings =
+                    loggerSettingsFile.GetValue(Category::toString(i).data(), logSource.data(), logLevel.data());
+
+                const bool result = SinksLogLevel::LogLevels::fromString(levelFromSettings, sink.second.currentLogLevel);
                 if (!result)
                 {
-                    sink.second = SinksLogLevel::LogLevels::I;
+                    sink.second.currentLogLevel = sink.second.defaultLogLevel;
                 }
 
-                loggerSettingsFile.SetValue(Category::toString(i).data(), logSource.data(), logLevel.data());
+                const auto newLogLevel = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
+                loggerSettingsFile.SetValue(Category::toString(i).data(), logSource.data(), newLogLevel.data());
             }
         }
 
