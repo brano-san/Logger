@@ -26,7 +26,7 @@ private:
     struct SinksLogLevel
     {
         GENENUM(uint8_t, LogSource, File, Console);
-        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
+        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C, BT, _);  // From quill library
 
         struct CurrentAndDefualtLogLevel
         {
