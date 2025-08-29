@@ -24,11 +24,18 @@ private:
     struct SinksLogLevel
     {
         GENENUM(uint8_t, LogSource, File, Console);
-        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
 
-        std::map<LogSource, LogLevel> logLevels = {
-            {LogSources::File,    LogLevels::T3},
-            {LogSources::Console, LogLevels::I }
+        struct LogLevel
+        {
+            GENENUM(uint8_t, ShortLogLevel, T3, T2, T1, D, I, N, W, E, C);  // From quill library
+            ShortLogLevel currentLogLevel;
+            const ShortLogLevel kDefaultLogLevel;
+        }
+
+        std::map<LogSource, LogLevel>
+            logLevels = {
+                {LogSources::File,    LogLevels::T3},
+                {LogSources::Console, LogLevels::I }
         };
     };
 
