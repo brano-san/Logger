@@ -12,10 +12,7 @@
 #include "SimpleIni.hpp"
 
 namespace logger {
-
-// GENENUM(uint8_t, CoreLauncherSource, Core, Test);
-
-template <class T, const char* LoggerName>
+template <class T, const char* LoggerName, uint8_t BacktraceLength = 32>
 class CategorizedLogger
 {
 private:
@@ -73,7 +70,7 @@ public:
             m_loggers[i] =
                 quill::Frontend::create_or_get_logger(Category::toString(i).data(), {std::move(fileSink), std::move(consoleSink)},
                     quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
-            m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
+            m_loggers[i]->init_backtrace(BacktraceLength, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
 
@@ -141,12 +138,14 @@ private:
     template <size_t number>
     static consteval auto getNumberAsCharArray()
     {
-        constexpr auto countDigits = [](size_t x) constexpr
+        constexpr uint8_t kOneDecimalDigit = 10;
+
+        constexpr auto countDigits = [kOneDecimalDigit](size_t x) constexpr
         {
             int len = (x <= 0) ? 1 : 0;
             while (x)
             {
-                x /= 10;
+                x /= kOneDecimalDigit;
                 ++len;
             }
             return len;
@@ -158,8 +157,8 @@ private:
         auto num = number;
         for (int i = len - 1; i >= 0; --i)
         {
-            result[i]  = '0' + (num % 10);
-            num       /= 10;
+            result[i]  = '0' + (num % kOneDecimalDigit);
+            num       /= kOneDecimalDigit;
         }
 
         return result;
@@ -206,13 +205,13 @@ private:
 }  // namespace logger
 
 // clang-format off
-#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType)                                      \
-    extern const char s_##Name##LoggerName[];                                             \
-    extern logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
+#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType, BacktraceLength)                                      \
+    extern const char s_##Name##LoggerName[];                                                              \
+    extern logger::CategorizedLogger<CategoryType, s_##Name##LoggerName, BacktraceLength> s_##Name##Logger
 
-#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType)                \
-    inline constexpr char s_##Name##LoggerName[] = #Name;                          \
-    logger::CategorizedLogger<CategoryType, s_##Name##LoggerName> s_##Name##Logger
+#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType, BacktraceLength)                \
+    inline constexpr char s_##Name##LoggerName[] = #Name;                                           \
+    logger::CategorizedLogger<CategoryType, s_##Name##LoggerName, BacktraceLength> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::name)
 
@@ -234,7 +233,7 @@ private:
 #define CAT_LOGV_TRACE_L1(logName, catName, cat, message, ...)  QUILL_LOGV_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_DEBUG(logName, catName, cat, message, ...)     QUILL_LOGV_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_INFO(logName, catName, cat, message, ...)      QUILL_LOGV_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
-#define CAT_LOGV_NOTICE(logName, catName, cat, message, ...)      QUILL_LOGV_NOTICE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_NOTICE(logName, catName, cat, message, ...)    QUILL_LOGV_NOTICE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_WARNING(logName, catName, cat, message, ...)   QUILL_LOGV_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_ERROR(logName, catName, cat, message, ...)     QUILL_LOGV_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_CRITICAL(logName, catName, cat, message, ...)  QUILL_LOGV_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
