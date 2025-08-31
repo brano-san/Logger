@@ -1,5 +1,4 @@
-﻿#ifndef LOGGER_CORE_HPP
-#define LOGGER_CORE_HPP
+﻿#pragma once
 
 #include <quill/Logger.h>
 #include <quill/Backend.h>
@@ -8,29 +7,33 @@
 #include <quill/sinks/FileSink.h>
 #include <quill/sinks/ConsoleSink.h>
 
+#include <GenEnum.hpp>
+
 #include "SimpleIni.hpp"
 
 namespace logger {
-
-template <class T>
+template <class T, const char* LoggerName, uint8_t BacktraceLength = 32>
 class CategorizedLogger
 {
 private:
-    using Category     = T;
+    using Category = T;
     static_assert(Category::getSize() > 0);
     using BaseCategory = typename Category::baseType;
 
-    struct SinkLogLevel
-    {
-        std::string_view sink;
-        std::string logLevel;
-    };
-
     struct SinksLogLevel
     {
-        std::unordered_map<std::string_view, std::string> logLevels = {
-            {std::string_view{"File"},    std::string{"T3"}},
-            {std::string_view{"Console"}, std::string{"I"} }
+        GENENUM(uint8_t, LogSource, File, Console);
+        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C, BT, _);  // From quill library
+
+        struct CurrentAndDefualtLogLevel
+        {
+            LogLevel currentLogLevel;
+            LogLevel defaultLogLevel;
+        };
+
+        std::map<LogSource, CurrentAndDefualtLogLevel> logLevels = {
+            {LogSources::File,    CurrentAndDefualtLogLevel{LogLevels::T3, LogLevels::T3}},
+            {LogSources::Console, CurrentAndDefualtLogLevel{LogLevels::I, LogLevels::I}  }
         };
     };
 
@@ -46,22 +49,28 @@ public:
             cfg.set_open_mode('w');
             cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
 
+            const auto fileLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::File];
+
             auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>(kLogSettingsFileName.data(), std::move(cfg));
-            fileSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["File"]));
+            fileSink->set_log_level_filter(
+                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(fileLogLevel.currentLogLevel)));
 
             // Console Sink
             quill::ConsoleSinkConfig consoleCfg;
             consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
 
+            const auto consoleLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::Console];
+
             auto consoleSink =
                 quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::toString(i).data(), std::move(consoleCfg));
-            consoleSink->set_log_level_filter(getLogLevelByShortName(m_loggerSinks[i].logLevels["Console"]));
+            consoleSink->set_log_level_filter(
+                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(consoleLogLevel.currentLogLevel)));
 
             // Logger create
             m_loggers[i] =
                 quill::Frontend::create_or_get_logger(Category::toString(i).data(), {std::move(fileSink), std::move(consoleSink)},
                     quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
-            m_loggers[i]->init_backtrace(32, quill::LogLevel::Critical);
+            m_loggers[i]->init_backtrace(BacktraceLength, quill::LogLevel::Critical);
             m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
         }
 
@@ -82,7 +91,7 @@ private:
     static quill::LogLevel getLogLevelByShortName(std::string_view logLevel)
     {
         quill::BackendOptions opt;
-        auto it = std::find(opt.log_level_short_codes.begin(), opt.log_level_short_codes.end(), logLevel);
+        auto* it = std::ranges::find(opt.log_level_short_codes, logLevel);
         if (it == opt.log_level_short_codes.end())
         {
             return quill::LogLevel::Info;
@@ -106,8 +115,20 @@ private:
         {
             for (auto& sink : m_loggerSinks[i].logLevels)
             {
-                sink.second = loggerSettingsFile.GetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
-                loggerSettingsFile.SetValue(Category::toString(i).data(), sink.first.data(), sink.second.data());
+                const auto logSource = SinksLogLevel::LogSources::toString(sink.first);
+                const auto logLevel  = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
+
+                const auto levelFromSettings =
+                    loggerSettingsFile.GetValue(Category::toString(i).data(), logSource.data(), logLevel.data());
+
+                const bool result = SinksLogLevel::LogLevels::fromString(levelFromSettings, sink.second.currentLogLevel);
+                if (!result)
+                {
+                    sink.second.currentLogLevel = sink.second.defaultLogLevel;
+                }
+
+                const auto newLogLevel = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
+                loggerSettingsFile.SetValue(Category::toString(i).data(), logSource.data(), newLogLevel.data());
             }
         }
 
@@ -117,25 +138,27 @@ private:
     template <size_t number>
     static consteval auto getNumberAsCharArray()
     {
-        constexpr auto count_digits = [](size_t x) constexpr
+        constexpr uint8_t kOneDecimalDigit = 10;
+
+        constexpr auto countDigits = [kOneDecimalDigit](size_t x) constexpr
         {
             int len = (x <= 0) ? 1 : 0;
             while (x)
             {
-                x /= 10;
+                x /= kOneDecimalDigit;
                 ++len;
             }
             return len;
         };
 
-        constexpr int len = count_digits(number);
+        constexpr int len = countDigits(number);
         std::array<char, len> result{};
 
         auto num = number;
         for (int i = len - 1; i >= 0; --i)
         {
-            result[i]  = '0' + (num % 10);
-            num       /= 10;
+            result[i]  = '0' + (num % kOneDecimalDigit);
+            num       /= kOneDecimalDigit;
         }
 
         return result;
@@ -147,14 +170,18 @@ private:
         constexpr auto size = Category::maxSourceStringLength() + 2;
 
         // "+ 1" for null-terminated
-        std::array<char, kPatternFormatterLogsPart1.size() + size + kPatternFormatterLogsPart2.size() + 1> res{};
+        std::array<char, kPatternFormatterLogsPart1.size() + kLoggerName.size() + kPatternFormatterLogsPart2.size() + size +
+                             kPatternFormatterLogsPart3.size() + 1>
+            res{};
 
         constexpr auto loggerNameLength = getNumberAsCharArray<size>();
 
         auto* ptr = res.data();
         ptr       = std::copy(kPatternFormatterLogsPart1.begin(), kPatternFormatterLogsPart1.end(), ptr);
-        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
+        ptr       = std::copy(kLoggerName.begin(), kLoggerName.end(), ptr);
         ptr       = std::copy(kPatternFormatterLogsPart2.begin(), kPatternFormatterLogsPart2.end(), ptr);
+        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
+        ptr       = std::copy(kPatternFormatterLogsPart3.begin(), kPatternFormatterLogsPart3.end(), ptr);
 
         return res;
     }
@@ -166,8 +193,11 @@ private:
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
 
     static constexpr std::string_view kPatternFormatterLogsPart1 =
-        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [%(logger:^";
-    static constexpr std::string_view kPatternFormatterLogsPart2 = ")] %(message)";
+        "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ ";
+    static constexpr std::string_view kPatternFormatterLogsPart2 = " ] [%(logger:^";
+    static constexpr std::string_view kPatternFormatterLogsPart3 = ")] %(message)";
+
+    static constexpr std::string_view kLoggerName = LoggerName;
 
     std::array<quill::Logger*, Category::getSize()> m_loggers;
     std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
@@ -175,8 +205,13 @@ private:
 }  // namespace logger
 
 // clang-format off
-#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType) extern logger::CategorizedLogger<CategoryType> s_##Name##Logger
-#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType) logger::CategorizedLogger<CategoryType> s_##Name##Logger
+#define DEFINE_CAT_LOGGER_MODULE(Name, CategoryType, BacktraceLength)                                      \
+    extern const char s_##Name##LoggerName[];                                                              \
+    extern logger::CategorizedLogger<CategoryType, s_##Name##LoggerName, BacktraceLength> s_##Name##Logger
+
+#define DEFINE_CAT_LOGGER_MODULE_INITIALIZATION(Name, CategoryType, BacktraceLength)                \
+    inline constexpr char s_##Name##LoggerName[] = #Name;                                           \
+    logger::CategorizedLogger<CategoryType, s_##Name##LoggerName, BacktraceLength> s_##Name##Logger
 
 #define GET_LOGGER(LoggerName, name, catName) logger::s_##LoggerName##Logger.getLogger(logger::catName::name)
 
@@ -186,6 +221,7 @@ private:
 #define CAT_LOG_TRACE_L1(logName, catName, cat, message, ...)  QUILL_LOG_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_DEBUG(logName, catName, cat, message, ...)     QUILL_LOG_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_INFO(logName, catName, cat, message, ...)      QUILL_LOG_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_NOTICE(logName, catName, cat, message, ...)    QUILL_LOG_NOTICE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_WARNING(logName, catName, cat, message, ...)   QUILL_LOG_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_ERROR(logName, catName, cat, message, ...)     QUILL_LOG_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_CRITICAL(logName, catName, cat, message, ...)  QUILL_LOG_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
@@ -197,6 +233,7 @@ private:
 #define CAT_LOGV_TRACE_L1(logName, catName, cat, message, ...)  QUILL_LOGV_TRACE_L1(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_DEBUG(logName, catName, cat, message, ...)     QUILL_LOGV_DEBUG(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_INFO(logName, catName, cat, message, ...)      QUILL_LOGV_INFO(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOGV_NOTICE(logName, catName, cat, message, ...)    QUILL_LOGV_NOTICE(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_WARNING(logName, catName, cat, message, ...)   QUILL_LOGV_WARNING(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_ERROR(logName, catName, cat, message, ...)     QUILL_LOGV_ERROR(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOGV_CRITICAL(logName, catName, cat, message, ...)  QUILL_LOGV_CRITICAL(GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
@@ -208,6 +245,7 @@ private:
 #define CAT_LOG_TRACE_L1_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_TRACE_L1_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_DEBUG_LIMIT_TIME(logName, catName, cat, time, message, ...)    QUILL_LOG_DEBUG_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_INFO_LIMIT_TIME(logName, catName, cat, time, message, ...)     QUILL_LOG_INFO_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_NOTICE_LIMIT_TIME(logName, catName, cat, time, message, ...)   QUILL_LOG_NOTICE_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_WARNING_LIMIT_TIME(logName, catName, cat, time, message, ...)  QUILL_LOG_WARNING_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_ERROR_LIMIT_TIME(logName, catName, cat, time, message, ...)    QUILL_LOG_ERROR_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_CRITICAL_LIMIT_TIME(logName, catName, cat, time, message, ...) QUILL_LOG_CRITICAL_LIMIT(time, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
@@ -218,9 +256,8 @@ private:
 #define CAT_LOG_TRACE_L1_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_TRACE_L1_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_DEBUG_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)    QUILL_LOG_DEBUG_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_INFO_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)     QUILL_LOG_INFO_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
+#define CAT_LOG_NOTICE_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)   QUILL_LOG_NOTICE_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_WARNING_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)  QUILL_LOG_WARNING_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_ERROR_LIMIT_EVERY_N(logName, catName, cat, count, message, ...)    QUILL_LOG_ERROR_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 #define CAT_LOG_CRITICAL_LIMIT_EVERY_N(logName, catName, cat, count, message, ...) QUILL_LOG_CRITICAL_LIMIT_EVERY_N(count, GET_LOGGER(logName, cat, catName), message, ##__VA_ARGS__)
 // clang-format on
-
-#endif  // LOGGER_CORE_HPP
