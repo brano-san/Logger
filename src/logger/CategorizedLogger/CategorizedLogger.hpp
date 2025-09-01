@@ -84,7 +84,7 @@ private:
 
         constexpr auto countDigits = [kOneDecimalDigit](size_t x) constexpr
         {
-            int len = (x <= 0) ? 1 : 0;
+            size_t len = (x <= 0) ? 1 : 0;
             while (x)
             {
                 x /= kOneDecimalDigit;
@@ -93,11 +93,11 @@ private:
             return len;
         };
 
-        constexpr int len = countDigits(number);
+        constexpr size_t len = countDigits(number);
         std::array<char, len> result{};
 
         auto num = number;
-        for (int i = len - 1; i >= 0; --i)
+        for (int64_t i = len - 1; i >= 0; --i)
         {
             result[i]  = '0' + (num % kOneDecimalDigit);
             num       /= kOneDecimalDigit;
@@ -116,13 +116,13 @@ private:
                              kPatternFormatterLogsPart3.size() + 1>
             res{};
 
-        constexpr auto loggerNameLength = getNumberAsCharArray<size>();
+        constexpr auto loggerNameLengthAsString = getNumberAsCharArray<size>();
 
         auto* ptr = res.data();
         ptr       = std::copy(kPatternFormatterLogsPart1.begin(), kPatternFormatterLogsPart1.end(), ptr);
         ptr       = std::copy(kLoggerName.begin(), kLoggerName.end(), ptr);
         ptr       = std::copy(kPatternFormatterLogsPart2.begin(), kPatternFormatterLogsPart2.end(), ptr);
-        ptr       = std::copy(std::begin(loggerNameLength), std::end(loggerNameLength), ptr);
+        ptr       = std::copy(std::begin(loggerNameLengthAsString), std::end(loggerNameLengthAsString), ptr);
         ptr       = std::copy(kPatternFormatterLogsPart3.begin(), kPatternFormatterLogsPart3.end(), ptr);
 
         return res;

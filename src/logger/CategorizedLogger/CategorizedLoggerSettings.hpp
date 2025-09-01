@@ -60,8 +60,8 @@ private:
         static_assert(opt.log_level_descriptions.size() == opt.log_level_short_codes.size());
         for (uint32_t i = 0; i < opt.log_level_short_codes.size(); ++i)
         {
-            loggerSettingsFile.SetValue(
-                "Description", opt.log_level_descriptions.at(i).data(), opt.log_level_short_codes.at(i).data());
+            loggerSettingsFile.SetValue(std::string{kDescriptionSettingsCategoryName}.data(),
+                opt.log_level_descriptions.at(i).data(), opt.log_level_short_codes.at(i).data());
         }
 
         for (BaseCategory i = 0; i < Category::getSize(); ++i)
@@ -88,7 +88,8 @@ private:
         loggerSettingsFile.SaveFile(std::string{kLoggerSettingsFileName}.data());
     }
 
-    static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
+    static constexpr std::string_view kLoggerSettingsFileName          = "LogSettings.ini";
+    static constexpr std::string_view kDescriptionSettingsCategoryName = "Description";
 
     std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
 };
