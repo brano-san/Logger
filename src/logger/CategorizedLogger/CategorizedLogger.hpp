@@ -9,10 +9,12 @@
 
 #include <GenEnum.hpp>
 
-#include "SimpleIni.hpp"
+#include "CategorizedLoggerSettings.hpp"
 
 namespace logger {
-template <class T, const char* LoggerName, uint8_t BacktraceLength = 32>
+static constexpr uint8_t kBacktraceDefaultLength = 32;
+
+template <class T, const char* LoggerName, uint8_t BacktraceLength = kBacktraceDefaultLength>
 class CategorizedLogger
 {
 private:
@@ -20,28 +22,9 @@ private:
     static_assert(Category::getSize() > 0);
     using BaseCategory = typename Category::baseType;
 
-    struct SinksLogLevel
-    {
-        GENENUM(uint8_t, LogSource, File, Console);
-        GENENUM(uint8_t, LogLevel, T3, T2, T1, D, I, N, W, E, C, BT, _);  // From quill library
-
-        struct CurrentAndDefualtLogLevel
-        {
-            LogLevel currentLogLevel;
-            LogLevel defaultLogLevel;
-        };
-
-        std::map<LogSource, CurrentAndDefualtLogLevel> logLevels = {
-            {LogSources::File,    CurrentAndDefualtLogLevel{LogLevels::T3, LogLevels::T3}},
-            {LogSources::Console, CurrentAndDefualtLogLevel{LogLevels::I, LogLevels::I}  }
-        };
-    };
-
 public:
     CategorizedLogger()
     {
-        loadSettings();
-
         for (BaseCategory i = 0; i < Category::getSize(); ++i)
         {
             // File Sink
@@ -49,22 +32,17 @@ public:
             cfg.set_open_mode('w');
             cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
 
-            const auto fileLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::File];
-
-            auto fileSink = quill::Frontend::create_or_get_sink<quill::FileSink>(kLogSettingsFileName.data(), std::move(cfg));
-            fileSink->set_log_level_filter(
-                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(fileLogLevel.currentLogLevel)));
+            auto fileSink =
+                quill::Frontend::create_or_get_sink<quill::FileSink>(std::string{kLogSettingsFileName}, std::move(cfg));
+            fileSink->set_log_level_filter(getLogLevelByShortName(m_settings.getFileLogLevel(i)));
 
             // Console Sink
             quill::ConsoleSinkConfig consoleCfg;
             consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
 
-            const auto consoleLogLevel = m_loggerSinks[i].logLevels[SinksLogLevel::LogSources::Console];
-
-            auto consoleSink =
-                quill::Frontend::create_or_get_sink<quill::ConsoleSink>(Category::toString(i).data(), std::move(consoleCfg));
-            consoleSink->set_log_level_filter(
-                getLogLevelByShortName(SinksLogLevel::LogLevels::toString(consoleLogLevel.currentLogLevel)));
+            auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
+                std::string{Category::toString(i)}, std::move(consoleCfg));
+            consoleSink->set_log_level_filter(getLogLevelByShortName(m_settings.getConsoleLogLevel(i)));
 
             // Logger create
             m_loggers[i] =
@@ -97,42 +75,6 @@ private:
             return quill::LogLevel::Info;
         }
         return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
-    }
-
-    void loadSettings()
-    {
-        CSimpleIniA loggerSettingsFile;
-        loggerSettingsFile.LoadFile(kLoggerSettingsFileName.data());
-
-        quill::BackendOptions opt;
-        static_assert(opt.log_level_descriptions.size() == opt.log_level_short_codes.size());
-        for (uint32_t i = 0; i < opt.log_level_short_codes.size(); ++i)
-        {
-            loggerSettingsFile.SetValue("Description", opt.log_level_descriptions[i].data(), opt.log_level_short_codes[i].data());
-        }
-
-        for (BaseCategory i = 0; i < Category::getSize(); ++i)
-        {
-            for (auto& sink : m_loggerSinks[i].logLevels)
-            {
-                const auto logSource = SinksLogLevel::LogSources::toString(sink.first);
-                const auto logLevel  = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
-
-                const auto levelFromSettings =
-                    loggerSettingsFile.GetValue(Category::toString(i).data(), logSource.data(), logLevel.data());
-
-                const bool result = SinksLogLevel::LogLevels::fromString(levelFromSettings, sink.second.currentLogLevel);
-                if (!result)
-                {
-                    sink.second.currentLogLevel = sink.second.defaultLogLevel;
-                }
-
-                const auto newLogLevel = SinksLogLevel::LogLevels::toString(sink.second.currentLogLevel);
-                loggerSettingsFile.SetValue(Category::toString(i).data(), logSource.data(), newLogLevel.data());
-            }
-        }
-
-        loggerSettingsFile.SaveFile(kLoggerSettingsFileName.data());
     }
 
     template <size_t number>
@@ -186,8 +128,6 @@ private:
         return res;
     }
 
-    static constexpr std::string_view kLoggerSettingsFileName = "LogSettings.ini";
-
     static constexpr std::string_view kPatternLogFileName   = "_%d_%m_%Y_%H_%M_%S";
     static constexpr std::string_view kLogSettingsFileName  = "logs/log.txt";
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
@@ -199,8 +139,9 @@ private:
 
     static constexpr std::string_view kLoggerName = LoggerName;
 
+    CategorizedLoggerSettings<T> m_settings;
+
     std::array<quill::Logger*, Category::getSize()> m_loggers;
-    std::array<SinksLogLevel, Category::getSize()> m_loggerSinks;
 };
 }  // namespace logger
 
