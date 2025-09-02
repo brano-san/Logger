@@ -77,6 +77,30 @@ private:
         return static_cast<quill::LogLevel>(std::distance(opt.log_level_short_codes.begin(), it));
     }
 
+    /**
+     * @brief Converts a compile-time integer into a character array representation.
+     *
+     * This function template takes an integer value specified as a non-type template parameter
+     * (`number`) and produces a `std::array<char, N>` containing its decimal representation.
+     * The conversion is performed entirely at compile time (`consteval`), making the result
+     * usable in constant expressions.
+     *
+     * @tparam number The integer value to be converted into a character array.
+     *
+     * @return A `std::array<char, len>` where `len` is the number of decimal digits
+     *         in `number`. The array contains the character representation of the number
+     *         without a null terminator.
+     *
+     * @note
+     * - The result is not null-terminated. If a C-style string is required,
+     *   you should handle null termination manually.
+     * - Supports zero and positive integers. Negative values are not supported.
+     *
+     * @code
+     * constexpr auto arr = getNumberAsCharArray<1234>();
+     * // arr = {'1','2','3','4'}
+     * @endcode
+     */
     template <size_t number>
     static consteval auto getNumberAsCharArray()
     {
@@ -132,6 +156,17 @@ private:
     static constexpr std::string_view kLogSettingsFileName  = "logs/log.txt";
     static constexpr std::string_view kPatternFormatterTime = "%H:%M:%S.%Qns";
 
+    // clang-format off
+    /* Quill log format
+     *      [%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ <LoggerName> ] [%(logger:^<Alignment>) %(message)
+     *          - LoggerName - Name of current Categorized Logger
+     *          - Alignment  - Logger Category alignment to get more readable logs
+     *
+     * Example:
+     *      [20:45:36.187493109] [27956] [        main.cpp:38         ] [ CRITICAL  ] [ CoreLauncher ] [  Core   ] Core - LOG_CRITICAL
+     *      [20:45:36.187493629] [27956] [        main.cpp:44         ] [   INFO    ] [ CoreLauncher ] [ Testing ] Test - LOG_INFO
+     */
+    // clang-format on
     static constexpr std::string_view kPatternFormatterLogsPart1 =
         "[%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ ";
     static constexpr std::string_view kPatternFormatterLogsPart2 = " ] [%(logger:^";
