@@ -3,8 +3,14 @@
 #include <cstdint>
 #include <GenEnum.hpp>
 
+#include <quill/Logger.h>
+#include <quill/Backend.h>
+#include <quill/Frontend.h>
+#include <quill/LogMacros.h>
+#include <quill/sinks/FileSink.h>
+#include <quill/sinks/ConsoleSink.h>
+
 #include "SimpleIni.hpp"
-#include "quill/backend/BackendOptions.h"
 
 namespace logger {
 template <class T>
@@ -33,9 +39,16 @@ private:
     };
 
 public:
-    CategorizedLoggerSettings()
+    CategorizedLoggerSettings() noexcept
     {
-        loadSettings();
+        try
+        {
+            loadSettings();
+        }
+        catch (const std::exception& ex)
+        {
+            std::printf("Got exception during initialize categorized logger settings");
+        }
     }
 
     std::string_view getFileLogLevel(BaseCategory category)

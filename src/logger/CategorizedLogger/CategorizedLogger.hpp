@@ -23,41 +23,48 @@ private:
     using BaseCategory = typename Category::baseType;
 
 public:
-    CategorizedLogger()
+    CategorizedLogger() noexcept
     {
-        for (BaseCategory i = 0; i < Category::getSize(); ++i)
+        try
         {
-            // File Sink
-            quill::FileSinkConfig cfg;
-            cfg.set_open_mode('w');
-            cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
+            for (BaseCategory i = 0; i < Category::getSize(); ++i)
+            {
+                // File Sink
+                quill::FileSinkConfig cfg;
+                cfg.set_open_mode('w');
+                cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
 
-            auto fileSink =
-                quill::Frontend::create_or_get_sink<quill::FileSink>(std::string{kLogSettingsFileName}, std::move(cfg));
-            fileSink->set_log_level_filter(getLogLevelByShortName(m_settings.getFileLogLevel(i)));
+                auto fileSink =
+                    quill::Frontend::create_or_get_sink<quill::FileSink>(std::string{kLogSettingsFileName}, std::move(cfg));
+                fileSink->set_log_level_filter(getLogLevelByShortName(m_settings.getFileLogLevel(i)));
 
-            // Console Sink
-            quill::ConsoleSinkConfig consoleCfg;
-            consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
+                // Console Sink
+                quill::ConsoleSinkConfig consoleCfg;
+                consoleCfg.set_colour_mode(quill::ConsoleSinkConfig::ColourMode::Always);
 
-            auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
-                std::string{Category::toString(i)}, std::move(consoleCfg));
-            consoleSink->set_log_level_filter(getLogLevelByShortName(m_settings.getConsoleLogLevel(i)));
+                auto consoleSink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>(
+                    std::string{Category::toString(i)}, std::move(consoleCfg));
+                consoleSink->set_log_level_filter(getLogLevelByShortName(m_settings.getConsoleLogLevel(i)));
 
-            // Logger create
-            m_loggers[i] =
-                quill::Frontend::create_or_get_logger(Category::toString(i).data(), {std::move(fileSink), std::move(consoleSink)},
+                // Logger create
+                m_loggers[i] = quill::Frontend::create_or_get_logger(Category::toString(i).data(),
+                    {std::move(fileSink), std::move(consoleSink)},
                     quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
-            m_loggers[i]->init_backtrace(BacktraceLength, quill::LogLevel::Critical);
-            m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
-        }
+                m_loggers[i]->init_backtrace(BacktraceLength, quill::LogLevel::Critical);
+                m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
+            }
 
-        quill::Backend::start();
+            quill::Backend::start();
+        }
+        catch (const std::exception& ex)
+        {
+            std::printf("Got exception during initialize categorized logger");
+        }
     }
 
     quill::Logger* getLogger(const BaseCategory name)
     {
-        return m_loggers[name];
+        return m_loggers.size() < name ? nullptr : m_loggers[name];
     }
 
     quill::Logger* getFirstLoggerOrNullptr()
@@ -69,7 +76,7 @@ private:
     static quill::LogLevel getLogLevelByShortName(std::string_view logLevel)
     {
         quill::BackendOptions opt;
-        auto* it = std::ranges::find(opt.log_level_short_codes, logLevel);
+        auto it = std::ranges::find(opt.log_level_short_codes, logLevel);
         if (it == opt.log_level_short_codes.end())
         {
             return quill::LogLevel::Info;
@@ -158,7 +165,7 @@ private:
 
     // clang-format off
     /* Quill log format
-     *      [%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ <LoggerName> ] [%(logger:^<Alignment>) %(message)
+     *      [%(time)] [%(thread_id)] [%(short_source_location:^28)] [%(log_level:^11)] [ <LoggerName> ] [%(logger:^<Alignment>)] %(message)
      *          - LoggerName - Name of current Categorized Logger
      *          - Alignment  - Logger Category alignment to get more readable logs
      *
