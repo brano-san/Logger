@@ -46,9 +46,12 @@ public:
                     std::string{Category::toString(i)}, std::move(consoleCfg));
                 consoleSink->set_log_level_filter(getLogLevelByShortName(m_settings.getConsoleLogLevel(i)));
 
+                std::vector<std::shared_ptr<quill::Sink>> sinks;
+                sinks.push_back(std::move(fileSink));
+                sinks.push_back(std::move(consoleSink));
+
                 // Logger create
-                m_loggers[i] = quill::Frontend::create_or_get_logger(Category::toString(i).data(),
-                    {std::move(fileSink), std::move(consoleSink)},
+                m_loggers[i] = quill::Frontend::create_or_get_logger(Category::toString(i).data(), std::move(sinks),
                     quill::PatternFormatterOptions{getPatternFormatter().data(), kPatternFormatterTime.data()});
                 m_loggers[i]->init_backtrace(BacktraceLength, quill::LogLevel::Critical);
                 m_loggers[i]->set_log_level(quill::LogLevel::TraceL3);
