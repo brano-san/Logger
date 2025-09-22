@@ -33,7 +33,9 @@ private:
         };
 
         std::map<LogSource, CurrentAndDefualtLogLevel> logLevels = {
+#ifndef LOGGER_NO_LOG_TO_FILE
             {LogSources::File,    CurrentAndDefualtLogLevel{LogLevels::T3, LogLevels::T3}},
+#endif
             {LogSources::Console, CurrentAndDefualtLogLevel{LogLevels::I, LogLevels::I}  }
         };
     };

@@ -30,6 +30,7 @@ public:
             for (BaseCategory i = 0; i < Category::getSize(); ++i)
             {
                 // File Sink
+#ifndef LOGGER_NO_LOG_TO_FILE
                 quill::FileSinkConfig cfg;
                 cfg.set_open_mode('w');
                 cfg.set_filename_append_option(quill::FilenameAppendOption::StartCustomTimestampFormat, kPatternLogFileName);
@@ -37,6 +38,7 @@ public:
                 auto fileSink =
                     quill::Frontend::create_or_get_sink<quill::FileSink>(std::string{kLogSettingsFileName}, std::move(cfg));
                 fileSink->set_log_level_filter(getLogLevelByShortName(m_settings.getFileLogLevel(i)));
+#endif
 
                 // Console Sink
                 quill::ConsoleSinkConfig consoleCfg;
@@ -47,7 +49,10 @@ public:
                 consoleSink->set_log_level_filter(getLogLevelByShortName(m_settings.getConsoleLogLevel(i)));
 
                 std::vector<std::shared_ptr<quill::Sink>> sinks;
+
+#ifndef LOGGER_NO_LOG_TO_FILE
                 sinks.push_back(std::move(fileSink));
+#endif
                 sinks.push_back(std::move(consoleSink));
 
                 // Logger create
