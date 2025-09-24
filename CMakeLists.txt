@@ -35,4 +35,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${QUILL_DIR}/include")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/third_party/GenEnum")
 target_link_libraries(${PROJECT_NAME} PUBLIC GenEnum::GenEnum)
 
-# target_compile_definitions(${PROJECT_NAME} PUBLIC LOGGER_NO_LOG_TO_FILE)
+if (NO_LOG_TO_FILE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC LOGGER_NO_LOG_TO_FILE)
+endif()
