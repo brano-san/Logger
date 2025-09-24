@@ -1,4 +1,13 @@
-﻿project ("Logger" CXX)
+﻿# Main CMakeLists of Logger module
+#
+# Possibilities:
+#   - Define ENABLE_DEBUG variable to turn on debug features
+#       Debug features include:
+#           1. StackTrace output on program crush to Critical log
+#
+#   - Define NO_LOG_TO_FILE variable to turn off loggin to file
+
+project ("Logger" CXX)
 
 message(STATUS "Adding library: " ${PROJECT_NAME})
 file(GLOB_RECURSE HEADER_FILES "${CMAKE_CURRENT_LIST_DIR}/src/logger/*.hpp")
@@ -34,3 +43,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC "${QUILL_DIR}/include")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/third_party/GenEnum")
 target_link_libraries(${PROJECT_NAME} PUBLIC GenEnum::GenEnum)
+
+if (NO_LOG_TO_FILE)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC LOGGER_NO_LOG_TO_FILE)
+endif()
